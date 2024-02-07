@@ -1,41 +1,44 @@
-import { ChakraProvider, Container, HStack, Icon, IconButton, Link, Spinner, Stack, Text } from "@chakra-ui/react"
-import { SupportedNetwork } from "@semaphore-protocol/data"
-import type { AppProps } from "next/app"
-import getNextConfig from "next/config"
-import Head from "next/head"
-import { useRouter } from "next/router"
-import { useEffect, useState } from "react"
-import { FaGithub } from "react-icons/fa"
-import LogsContext from "../context/LogsContext"
-import SemaphoreContext from "../context/SemaphoreContext"
-import useSemaphore from "../hooks/useSemaphore"
-import theme from "../styles/index"
+import { ChakraProvider, Container, HStack, Icon, IconButton, Link, Spinner, Stack, Text } from "@chakra-ui/react";
+import { SupportedNetwork } from "@semaphore-protocol/data";
+import type { AppProps } from "next/app";
+import getNextConfig from "next/config";
+import Head from "next/head";
+import { useRouter } from "next/router";
+import { useEffect, useState } from "react";
+import { FaGithub } from "react-icons/fa";
+import LogsContext from "../context/LogsContext";
+import SemaphoreContext from "../context/SemaphoreContext";
+import useSemaphore from "../hooks/useSemaphore";
+import theme from "../styles/index";
 
-const { publicRuntimeConfig: env } = getNextConfig()
+const { publicRuntimeConfig: env } = getNextConfig();
 
 export default function App({ Component, pageProps }: AppProps) {
-    const router = useRouter()
-    const semaphore = useSemaphore()
-    const [_logs, setLogs] = useState<string>("")
+    const router = useRouter();
+    const semaphore = useSemaphore();
+    const [_logs, setLogs] = useState<string>("");
 
     useEffect(() => {
-        semaphore.refreshUsers()
-        semaphore.refreshFeedback()
-    }, [])
+        semaphore.refreshUsers();
+        semaphore.refreshFeedback();
+    }, []);
 
     function shortenAddress(address: string) {
-        return `${address.slice(0, 6)}...${address.slice(-4)}`
+        if (!address) {
+            return 'Address not available'; // Or any placeholder text you prefer
+        }
+        return `${address.slice(0, 6)}...${address.slice(-4)}`;
     }
 
     function getExplorerLink(network: SupportedNetwork, address: string) {
         switch (network) {
             case "goerli":
             case "sepolia":
-                return `https://${network}.etherscan.io/address/${address}`
+                return `https://${network}.etherscan.io/address/${address}`;
             case "arbitrum-goerli":
-                return `https://goerli.arbiscan.io/address/${address}`
+                return `https://goerli.arbiscan.io/address/${address}`;
             default:
-                return ""
+                return "";
         }
     }
 
@@ -90,5 +93,5 @@ export default function App({ Component, pageProps }: AppProps) {
                 </HStack>
             </ChakraProvider>
         </>
-    )
+    );
 }

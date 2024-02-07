@@ -1,50 +1,70 @@
-import { SemaphoreEthers } from "@semaphore-protocol/data"
-import { BigNumber, utils } from "ethers"
-import getNextConfig from "next/config"
-import { useCallback, useState } from "react"
-import { SemaphoreContextType } from "../context/SemaphoreContext"
+import { SemaphoreEthers } from "@semaphore-protocol/data";
+import { BigNumber, utils } from "ethers";
+import getNextConfig from "next/config";
+import { useCallback, useState } from "react";
+import { SemaphoreContextType } from "../context/SemaphoreContext";
 
-const { publicRuntimeConfig: env } = getNextConfig()
+const { publicRuntimeConfig: env } = getNextConfig();
 
-const ethereumNetwork = env.DEFAULT_NETWORK === "localhost" ? "http://localhost:8545" : env.DEFAULT_NETWORK
+const ethereumNetwork = env.DEFAULT_NETWORK === "scroll-sepolia" ? "https://scroll-sepolia-testnet.rpc.thirdweb.com/" : env.DEFAULT_NETWORK;
 
 export default function useSemaphore(): SemaphoreContextType {
-    const [_users, setUsers] = useState<any[]>([])
-    const [_feedback, setFeedback] = useState<string[]>([])
+    const [_users, setUsers] = useState<any[]>([]);
+    const [_feedback, setFeedback] = useState<string[]>([]);
+
+    // Correct handling for groupId to ensure it's properly passed as a string
+    const groupId = env.GROUP_ID ? String(env.GROUP_ID) : "";
 
     const refreshUsers = useCallback(async (): Promise<void> => {
         const semaphore = new SemaphoreEthers(ethereumNetwork, {
-            address: env.SEMAPHORE_CONTRACT_ADDRESS
-        })
+            address: env.SEMAPHORE_CONTRACT_ADDRESS,
+        });
 
-        const members = await semaphore.getGroupMembers(env.GROUP_ID)
+        if (!groupId) {
+            console.error("GroupId is undefined or not a string.");
+            return;
+        }
 
-        setUsers(members)
-    }, [])
+        try {
+            const members = await semaphore.getGroupMembers(groupId);
+            setUsers(members);
+        } catch (error) {
+            console.error("Error fetching group members:", error);
+        }
+    }, [groupId]);
 
-    const addUser = useCallback(
-        (user: any) => {
-            setUsers([..._users, user])
-        },
-        [_users]
-    )
+    const addUser = useCallback((user: any) => {
+        setUsers((prevUsers) => [...prevUsers, user]);
+    }, []);
 
     const refreshFeedback = useCallback(async (): Promise<void> => {
         const semaphore = new SemaphoreEthers(ethereumNetwork, {
-            address: env.SEMAPHORE_CONTRACT_ADDRESS
-        })
+            address: env.SEMAPHORE_CONTRACT_ADDRESS,
+        });
 
-        const proofs = await semaphore.getGroupVerifiedProofs(env.GROUP_ID)
+        if (!groupId) {
+            console.error("GroupId is undefined or not a string.");
+            return;
+        }
 
-        setFeedback(proofs.map(({ signal }: any) => utils.parseBytes32String(BigNumber.from(signal).toHexString())))
-    }, [])
+        try {
+            const proofs = await semaphore.getGroupVerifiedProofs(groupId);
+            setFeedback(proofs.map(({ signal }: any) => {
+                try {
+                    return utils.parseBytes32String(BigNumber.from(signal).toHexString());
+                } catch (error) {
+                    console.error("Error parsing signal to string:", error);
+                    return "Invalid signal";
+                }
+            }));
+        } catch (error) {
+            console.error("Error fetching group verified proofs:", error);
+        }
+    }, [groupId]);
 
-    const addFeedback = useCallback(
-        (feedback: string) => {
-            setFeedback([..._feedback, feedback])
-        },
-        [_feedback]
-    )
+    const addFeedback = useCallback((feedback: string) => {
+        setFeedback((prevFeedback) => [...prevFeedback, feedback]);
+    }, []);
 
     return {
         _users,
@@ -52,6 +72,6 @@ export default function useSemaphore(): SemaphoreContextType {
         refreshUsers,
         addUser,
         refreshFeedback,
-        addFeedback
-    }
+        addFeedback,
+    };
 }
